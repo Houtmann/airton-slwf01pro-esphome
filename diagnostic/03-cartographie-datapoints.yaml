@@ -1,0 +1,213 @@
+﻿# =====================================================================
+# ÉTAPE 3 (optionnelle) — CARTOGRAPHIER LES DATAPOINTS INCONNUS
+#
+# À utiliser si votre climatiseur n'expose pas exactement les mêmes
+# datapoints que ceux du README, ou pour identifier ceux qui restent
+# non documentés (ECO, I FEEL, CLEAN...).
+#
+# Cette configuration donne de quoi piloter la clim pendant les essais,
+# ET expose TOUS les datapoints encore inconnus en LECTURE SEULE.
+#
+# MODE D'EMPLOI
+#   1. Flashez cette configuration
+#   2. Ouvrez la page de l'appareil dans Home Assistant
+#      (Paramètres -> Appareils -> votre clim)
+#   3. Appuyez sur UN SEUL bouton de la télécommande à la fois
+#   4. Regardez quel capteur « DPxx » change de valeur
+#   5. Reportez la correspondance dans airton-clim.yaml
+#
+# POURQUOI LA LECTURE SEULE
+# Écrire à l'aveugle sur un datapoint inconnu d'une carte de
+# climatisation peut déclencher n'importe quoi, y compris des modes de
+# service. On identifie d'abord, on pilote ensuite.
+# =====================================================================
+
+substitutions:
+  name: "clim-cartographie"
+  friendly_name: "Clim cartographie"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp8266:
+  board: esp12e
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${name}-secours"
+    password: !secret ap_password
+
+captive_portal:
+
+web_server:
+  port: 80
+
+api:
+
+ota:
+  - platform: esphome
+
+logger:
+  baud_rate: 0
+  level: DEBUG
+  logs:
+    # Le composant tuya journalise chaque mise à jour de datapoint, soit
+    # des dizaines par seconde à cause du DP3. Produire ces logs et les
+    # pousser par Wi-Fi consomme assez de temps processeur pour faire
+    # déborder le tampon UART : le remède devient la cause.
+    #
+    # Passez temporairement en DEBUG pour repérer l'apparition d'un
+    # datapoint absent de l'énumération initiale (voir le DP12 dans le
+    # README), puis revenez à WARN.
+    tuya: WARN
+
+uart:
+  id: ac_uart
+  tx_pin: GPIO12
+  rx_pin: GPIO14
+  baud_rate: 9600
+  rx_buffer_size: 1024
+  # Décommentez pour voir les octets bruts en plus du décodage Tuya.
+  # Indispensable pour distinguer une vraie valeur d'une trame tronquée,
+  # mais coûteux en temps processeur : à n'activer que le temps d'un
+  # diagnostic, pas en usage permanent.
+  # debug:
+  #   direction: BOTH
+  #   after:
+  #     timeout: 30ms
+  #   sequence:
+  #     - lambda: UARTDebug::log_hex(direction, bytes, ' ');
+
+tuya:
+  id: tuya_ac
+
+# ---------------------------------------------------------------------
+# De quoi piloter la clim pendant les essais.
+# Pas de current_temperature_datapoint : voir le piège n°3 du README.
+# ---------------------------------------------------------------------
+climate:
+  - platform: tuya
+    name: "Thermostat"
+    switch_datapoint: 1
+    target_temperature_datapoint: 2
+    temperature_multiplier: 0.1
+    visual:
+      min_temperature: 16 °C
+      max_temperature: 31 °C
+      temperature_step: 1 °C
+
+select:
+  - platform: tuya
+    name: "Mode"
+    enum_datapoint: 4
+    icon: mdi:air-conditioner
+    options:
+      0: Auto
+      1: Froid
+      2: Deshumidification
+      3: Chaud
+      4: Ventilation
+
+  - platform: tuya
+    name: "Vitesse ventilation"
+    enum_datapoint: 5
+    icon: mdi:fan
+    options:
+      0: Auto
+      1: Vitesse 1
+      2: Vitesse 2
+      3: Vitesse 3
+      4: Vitesse 4
+      5: Vitesse 5
+      6: Silencieux
+      7: Turbo
+
+# =====================================================================
+# LES DATAPOINTS À IDENTIFIER — tous en lecture seule
+#
+# Les boutons ECO/SC, I FEEL et CLEAN se trouvent quelque part ici.
+# =====================================================================
+sensor:
+  - platform: tuya
+    name: "Temperature piece"
+    sensor_datapoint: 3
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+      - median:
+          window_size: 15
+          send_every: 15
+      - throttle_average: 30s
+
+  - platform: tuya
+    name: "DP20 defauts"
+    sensor_datapoint: 20
+  - platform: tuya
+    name: "DP21"
+    sensor_datapoint: 21
+  - platform: tuya
+    name: "DP22"
+    sensor_datapoint: 22
+  - platform: tuya
+    name: "DP101"
+    sensor_datapoint: 101
+  - platform: tuya
+    name: "DP102"
+    sensor_datapoint: 102
+  - platform: tuya
+    name: "DP103"
+    sensor_datapoint: 103
+  - platform: tuya
+    name: "DP104"
+    sensor_datapoint: 104
+  - platform: tuya
+    name: "DP105"
+    sensor_datapoint: 105
+  - platform: tuya
+    name: "DP106"
+    sensor_datapoint: 106
+  - platform: tuya
+    name: "DP107"
+    sensor_datapoint: 107
+  - platform: tuya
+    name: "DP112"
+    sensor_datapoint: 112
+  - platform: tuya
+    name: "DP113"
+    sensor_datapoint: 113
+  - platform: tuya
+    name: "DP114"
+    sensor_datapoint: 114
+
+  - platform: wifi_signal
+    name: "Signal Wi-Fi"
+    update_interval: 60s
+
+binary_sensor:
+  - platform: tuya
+    name: "DP8"
+    sensor_datapoint: 8
+  - platform: tuya
+    name: "DP12"
+    sensor_datapoint: 12
+  - platform: tuya
+    name: "DP108"
+    sensor_datapoint: 108
+  - platform: tuya
+    name: "DP109"
+    sensor_datapoint: 109
+  - platform: tuya
+    name: "DP110"
+    sensor_datapoint: 110
+  - platform: tuya
+    name: "DP111"
+    sensor_datapoint: 111
+  - platform: tuya
+    name: "DP115"
+    sensor_datapoint: 115

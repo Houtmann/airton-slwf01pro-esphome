@@ -106,11 +106,21 @@ Flashez [`diagnostic/02-tuya-discovery.yaml`](diagnostic/02-tuya-discovery.yaml)
 
 Manipulez ensuite la télécommande **une fonction à la fois** en regardant quel datapoint bouge. C'est ainsi qu'on cartographie une carte inconnue.
 
-Si vos valeurs correspondent à la [table ci-dessous](#table-des-datapoints), passez directement à l'étape 3.
+Si vos valeurs correspondent à la [table ci-dessous](#table-des-datapoints), passez directement à l'étape 4.
 
-### Étape 3 — La configuration finale
+### Étape 3 — Cartographier ce qui reste (optionnel)
+
+Si votre climatiseur n'expose pas exactement les mêmes datapoints, ou pour identifier ceux qui restent inconnus, flashez [`diagnostic/03-cartographie-datapoints.yaml`](diagnostic/03-cartographie-datapoints.yaml).
+
+Cette configuration donne de quoi piloter la clim pendant les essais **et** expose tous les datapoints non identifiés en lecture seule. Ouvrez la page de l'appareil dans Home Assistant, appuyez sur un bouton à la fois, et regardez lequel bouge.
+
+> La lecture seule est volontaire : écrire à l'aveugle sur un datapoint inconnu d'une carte de climatisation peut déclencher n'importe quoi, y compris des modes de service.
+
+### Étape 4 — La configuration finale
 
 Flashez [`airton-clim.yaml`](airton-clim.yaml). Vous obtenez dans Home Assistant : un thermostat, cinq modes, huit vitesses de ventilation, les deux oscillations, le mode nuit, le purificateur, l'affichage, la température de la pièce et les codes défaut.
+
+> ⚠️ **Éprouvé partiellement.** Les datapoints 1, 2, 3, 4, 5 et 20 ont été vérifiés directement sur le matériel. Les datapoints **13, 105, 106, 107, 109 et 110** proviennent de la [documentation de devildant/acw02_esphome](https://github.com/devildant/acw02_esphome/blob/main/docs/TUYA_MCU_SETUP.md) et n'ont pas encore été retestés ici, pas plus que le bloc `active_state`. En cas de comportement inattendu, repliez-vous sur la configuration de l'étape 3, qui ne contient que du vérifié.
 
 ### Flasher, concrètement
 
