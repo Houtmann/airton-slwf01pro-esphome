@@ -43,7 +43,7 @@ En cas de doute, le firmware de diagnostic de l'[étape 1](#étape-1--identifier
 
 ## Matériel
 
-**Un seul composant : le [SMLIGHT SLWF-01 Pro](https://smlight.tech/product/slwf-01), version 2.1**, une trentaine d'euros.
+**Un seul composant : le [SMLIGHT SLWF-01 Pro](https://smlight.tech/product/slwf-01), version 2.1**, une dizaine d'euros — [chez Domadoo](https://www.domadoo.fr/fr/controle-chauffage-clim/7774-smlight-module-wi-fi-pour-climatiseur-slwf-01-pro.html) par exemple.
 
 C'est un dongle USB qui remplace le module Wi-Fi d'origine sur l'unité intérieure. La v2.1 se reconnaît à son **port USB-C** supplémentaire, qui permet de la flasher sans démontage compliqué.
 
