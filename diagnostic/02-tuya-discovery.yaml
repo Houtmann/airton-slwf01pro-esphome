@@ -1,0 +1,75 @@
+﻿# =====================================================================
+# ÉTAPE 2 — ÉNUMÉRATION DES DATAPOINTS TUYA
+#
+# À utiliser une fois l'étape 1 confirmée : la carte parle bien TuyaMCU.
+#
+# Le composant `tuya:` effectue la poignée de main complète et journalise
+# la liste de TOUS les datapoints exposés, avec leur type et leur valeur :
+#
+#   [tuya] Datapoint 1: switch (value: ON)
+#   [tuya] Datapoint 2: int value (value: 240)
+#   [tuya] Datapoint 4: enum (value: 1)
+#   [tuya] Product: '{"p":"...","v":"1.0.0","m":0}'
+#
+# Manipulez ensuite la télécommande UNE FONCTION À LA FOIS en regardant
+# quel datapoint bouge : c'est ainsi qu'on établit la correspondance.
+#
+# ATTENTION : cette liste n'est pas exhaustive. Certains datapoints sont
+# write-only et n'apparaissent JAMAIS (le DP13 « Affichage » sur Airton),
+# d'autres ne surgissent qu'à l'usage (le DP12 est apparu au premier
+# changement de mode, absent de l'énumération initiale).
+# =====================================================================
+
+substitutions:
+  name: "clim-sniffer"
+
+esphome:
+  name: ${name}
+
+esp8266:
+  board: esp12e
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${name}-secours"
+    password: !secret ap_password
+
+captive_portal:
+
+web_server:
+  port: 80
+
+api:
+
+ota:
+  - platform: esphome
+
+logger:
+  baud_rate: 0
+  level: DEBUG
+
+uart:
+  id: ac_uart
+  tx_pin: GPIO12
+  rx_pin: GPIO14
+  baud_rate: 9600
+  rx_buffer_size: 1024
+  # On conserve la vue hexadécimale EN PLUS du décodage Tuya.
+  # Pas de dummy_receiver ici : les octets doivent atteindre le composant
+  # tuya, sinon il ne verrait rien.
+  debug:
+    direction: BOTH
+    after:
+      timeout: 30ms
+    sequence:
+      - lambda: UARTDebug::log_hex(direction, bytes, ' ');
+
+tuya:
+  id: tuya_ac
+
+sensor:
+  - platform: wifi_signal
+    name: "Signal Wi-Fi"
+    update_interval: 60s

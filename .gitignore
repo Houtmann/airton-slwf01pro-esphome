@@ -1,0 +1,9 @@
+# Identifiants — ne jamais publier
+secrets.yaml
+
+# Dossiers de compilation ESPHome
+.esphome/
+*.bin
+
+# Divers
+.DS_Store
