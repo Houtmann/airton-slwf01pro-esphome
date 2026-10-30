@@ -4,7 +4,7 @@
 
 Ce dépôt documente l'intégration d'un climatiseur **Airton** utilisant le protocole **TuyaMCU**, à l'aide d'un dongle **SMLIGHT SLWF-01 Pro** reflashé. Le module se branche sur le port USB de l'unité intérieure : aucun câblage, aucun composant à souder.
 
-Il contient la configuration finale, deux firmwares de diagnostic, la table complète des datapoints, et surtout **les quatre pièges** sur lesquels on perd des heures.
+Il contient la configuration finale, deux firmwares de diagnostic, la table complète des datapoints, et surtout **les six pièges** sur lesquels on perd des heures.
 
 ---
 
@@ -15,7 +15,7 @@ Il contient la configuration finale, deux firmwares de diagnostic, la table comp
 - [Pourquoi ce n'est pas immédiat](#pourquoi-ce-nest-pas-immédiat)
 - [Installation pas à pas](#installation-pas-à-pas)
 - [Table des datapoints](#table-des-datapoints)
-- [Les quatre pièges](#les-quatre-pièges)
+- [Les six pièges](#les-six-pièges)
 - [Ce qui ne fonctionne pas](#ce-qui-ne-fonctionne-pas)
 - [Crédits](#crédits)
 
@@ -53,6 +53,8 @@ C'est un dongle USB qui remplace le module Wi-Fi d'origine sur l'unité intérie
 | UART | GPIO12 (TX) / GPIO14 (RX), 9600 bauds |
 | Alimentation | fournie par le port USB de la clim |
 
+> **Alimentation** : selon des retours d'autres utilisateurs (non vérifié ici), certaines cartes Airton fournissent trop peu de courant sur le connecteur, ce qui provoque des reboots ou un Wi-Fi instable. Contournement rapporté : alimenter le module en 5 V externe, avec une masse commune. Voir le README de [devildant/acw02_esphome](https://github.com/devildant/acw02_esphome).
+
 > **Attention** : le SLWF-01 Pro est vendu avec un firmware **Midea** préinstallé. Sur une clim Tuya, il ne fonctionnera pas — voir ci-dessous.
 
 ---
@@ -73,7 +75,7 @@ Ce n'est ni un défaut de branchement ni un module défectueux : **c'est le mauv
 
 ### Prérequis
 
-L'add-on **ESPHome Device Builder** dans Home Assistant (Paramètres → Modules complémentaires → dépôt ESPHome).
+L'add-on **ESPHome Device Builder** dans Home Assistant (Paramètres → Modules complémentaires → dépôt ESPHome), en version **2026.10.1 ou plus récente** recommandée (voir [piège n°5](#5-version-desphome-et-uart-logicielle)).
 
 Copiez `secrets.yaml.example` en `secrets.yaml` et renseignez vos identifiants Wi-Fi. Ce fichier est ignoré par git.
 
@@ -163,7 +165,7 @@ Les boutons **ECO/SC**, **I FEEL** et **CLEAN** de la télécommande s'y trouven
 
 ---
 
-## Les quatre pièges
+## Les six pièges
 
 ### 1. `rx_buffer_size` — le plus coûteux en temps
 
@@ -236,6 +238,34 @@ On obtient une valeur stable — la moyenne des deux sondes — publiée toutes 
 Impossible à découvrir par observation — il faut le savoir. ESPHome conservera la dernière valeur commandée, qui peut différer de la réalité si vous utilisez la télécommande.
 
 Corollaire : **l'énumération initiale n'est pas exhaustive**. Le DP12, absent au démarrage, est apparu au premier changement de mode. D'autres datapoints dorment probablement encore.
+
+### 5. Version d'ESPHome et UART logicielle
+
+Comme vu au piège n°1, GPIO12/14 imposent une **UART logicielle**. La [documentation UART d'ESPHome](https://esphome.io/components/uart/) ne liste comme broches matérielles sur ESP8266 que GPIO1/3 et GPIO15/13.
+
+Avant ESPHome 2026.10, la réception logicielle bloquait environ **1 ms par octet avec les interruptions coupées** ([PR esphome#18519](https://github.com/esphome/esphome/pull/18519)). Pendant ce temps, le Wi-Fi et le watchdog sont privés de temps processeur.
+
+Symptômes : octets perdus, erreurs de checksum dans les logs (`55!=xx`), watchdogs, redémarrages inexpliqués.
+
+La 2026.10 décode la réception par fronts. **ESPHome 2026.10.1 ou plus récent est donc recommandé** : cela corrige un défaut connu, sans prétendre éliminer toute perte d'octets (voir « Ce qui ne fonctionne pas »). Le correctif est en test sur le matériel de l'auteur depuis le 30/10/2026 ; il n'y a pas encore de recul.
+
+En complément, la configuration fixe `wifi: power_save_mode: none` : le mode `LIGHT` par défaut de l'ESP8266 aggrave les pertes d'octets.
+
+### 6. La température qui retombe à 0 au-delà de 25,5 °C
+
+Le MCU Airton encode la température ambiante (DP3) en **uint8 de dixièmes de degré** : la valeur maximale est 255, soit 25,5 °C. Au-delà, elle déborde et repart de zéro : **26,0 °C arrive sous la forme `4`** (260 − 256), soit 0,4 °C une fois le multiplicateur appliqué.
+
+Le correctif est un filtre placé avant le `multiply` : une valeur inférieure à 70 (7,0 °C) est impossible en intérieur, on lui ajoute donc 256.
+
+```yaml
+filters:
+  - lambda: |-
+      if (x < 70) x += 256;
+      return x;
+  - multiply: 0.1
+```
+
+Source : le fil HACF [« Module WIFI climatisation Airton »](https://forum.hacf.fr/t/module-wifi-climatisation-airton/20958).
 
 ---
 

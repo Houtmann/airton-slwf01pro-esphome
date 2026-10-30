@@ -6,6 +6,14 @@
 # Liaison   : UART logiciel, GPIO12 (TX) / GPIO14 (RX), 9600 bauds
 # Protocole : TuyaMCU (trames 55 AA ...)
 #
+# ESPHome >= 2026.10.1 recommandé. GPIO12/14 ne sont pas des broches
+# d'UART matériel (sur ESP8266 seules GPIO1/3 et GPIO15/13 le sont) :
+# ESPHome utilise donc une UART logicielle. Avant la 2026.10
+# (PR esphome#18519), sa réception bloquait ~1 ms par octet avec les
+# interruptions coupées : octets perdus, erreurs de checksum du type
+# « 55!=xx », watchdogs et reboots. La 2026.10 décode par fronts ce qui
+# corrige ce défaut connu.
+#
 # Les identifiants Wi-Fi vivent dans secrets.yaml — voir
 # secrets.yaml.example. Ne les écrivez jamais en clair ici.
 # =====================================================================
@@ -29,6 +37,11 @@ wifi:
   ap:
     ssid: "${name}-secours"
     password: !secret ap_password
+  # Le mode d'économie d'énergie par défaut de l'ESP8266 (LIGHT) coupe
+  # la radio par intervalles et aggrave les pertes d'octets de l'UART
+  # logicielle. Le module est alimenté par la clim : aucun intérêt à
+  # économiser l'énergie.
+  power_save_mode: none
 
 captive_portal:
 
@@ -214,6 +227,13 @@ sensor:
     state_class: measurement
     accuracy_decimals: 1
     filters:
+      # Le MCU Airton encode la température en uint8 de dixièmes de degré :
+      # au-delà de 25,5 °C la valeur repart à 0 (26,0 °C arrive en 4).
+      # Une valeur < 7,0 °C (70) est impossible en intérieur : on la
+      # considère comme ayant débordé et l'on rajoute 256.
+      - lambda: |-
+          if (x < 70) x += 256;
+          return x;
       - multiply: 0.1
       - median:
           window_size: 15
