@@ -122,6 +122,8 @@ Cette configuration donne de quoi piloter la clim pendant les essais **et** expo
 
 Flashez [`airton-clim.yaml`](airton-clim.yaml). Vous obtenez dans Home Assistant : un thermostat, cinq modes, huit vitesses de ventilation, les deux oscillations, le mode nuit, le purificateur, l'affichage, la température de la pièce et les codes défaut.
 
+La configuration qui tourne réellement chez moi est [`airton-clim-complet.yaml`](airton-clim-complet.yaml) (étape 9.9) : même base, plus une resynchronisation au boot qui attend la température, une resync périodique, la correction DP3 (+256), et des capteurs de diagnostic (boîte noire avant reboot, compteurs de trames aberrantes). Son en-tête retrace l'historique des étapes. Le nom du device y reste `slwf-sniffer`, pour conserver les identifiants d'entités.
+
 > ⚠️ **Éprouvé partiellement.** Les datapoints 1, 2, 3, 4, 5 et 20 ont été vérifiés directement sur le matériel. Les datapoints **13, 105, 106, 107, 109 et 110** proviennent de la [documentation de devildant/acw02_esphome](https://github.com/devildant/acw02_esphome/blob/main/docs/TUYA_MCU_SETUP.md) et n'ont pas encore été retestés ici, pas plus que le bloc `active_state`. En cas de comportement inattendu, repliez-vous sur la configuration de l'étape 3, qui ne contient que du vérifié.
 
 ### Flasher, concrètement
